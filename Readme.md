@@ -1,4 +1,4 @@
-# Serverless the hard way
+# Serverless the manual way
 
 Why? Because [abstractions save us time working, but they don’t save us time learning](https://www.joelonsoftware.com/2002/11/11/the-law-of-leaky-abstractions/).
 
@@ -19,6 +19,8 @@ Steps:
 * Step 3: Upload function code
 * Step 4: Create the lambda function definition
 * Step 5: Invoke the function manually
+* Step 6: Create a public rest API
+
 
 
 ### Step 0: Prerequisites
@@ -164,6 +166,91 @@ The code is stored in S3 as a zip file:
 Learn more:
 
 	* http://docs.aws.amazon.com/lambda/latest/dg/with-userapp-walkthrough-custom-events-invoke.html
+
+
+### Step 6: Create a public rest API
+
+	$ aws apigateway help
+
+	# Create a Rest API. Save the id as $APP_ID 
+	$ aws apigateway create-rest-api --name helloworld
+	{
+    	"name": "helloworld",
+    	"id": "9mrksd7lm0j",
+    	"createdDate": 1497362995
+	}
+	$ APP_ID=9mrksd7lm0j
+
+	#save the root id of the api
+	$ ROOT_ID=$(aws apigateway get-resources --rest-api-id $APP_ID | jq -r .items[0].id)
+
+	# Create a resource Save the id as $RESOURCE_ID
+	$ aws apigateway create-resource --rest-api-id=$APP_ID --parent-id=$ROOT_ID --path-part hello
+	...
+	$ RESOURCE_ID=taugbk
+
+	# Create a method 
+	$ aws apigateway put-method --rest-api-id=$APP_ID --resource-id=$RESOURCE_ID --http-method GET --authorization-type NONE
+
+
+	# Attach lambda function
+	$ aws apigateway put-integration \
+	--rest-api-id $APP_ID \
+	--resource-id $RESOURCE_ID \
+	--http-method GET \
+	--type AWS \
+	--integration-http-method POST \
+	--uri arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:$AWS_ACCOUNT_NUMBER:function:helloworld/invocations
+
+	# set content-type response
+	$ aws apigateway put-method-response \
+	--rest-api-id $APP_ID \
+	--resource-id $RESOURCE_ID \
+	--http-method GET \
+	--status-code 200 \
+	--response-models "{\"application/json\": \"Empty\"}"
+
+	# TODO
+	$ aws apigateway put-integration-response \
+	--rest-api-id $APP_ID \
+	--resource-id $RESOURCE_ID \
+	--http-method GET \
+	--status-code 200 \
+	--response-templates "{\"application/json\": \"\"}"
+
+	#  Deploy the API. Save as $DEPLOYMENT_ID
+	$ aws apigateway create-deployment \
+	--rest-api-id $APP_ID \
+	--stage-name prod
+
+	# Grant something 1
+	$ aws lambda add-permission \
+	--function-name helloworld \
+	--statement-id apigateway-test-2 \
+	--action lambda:InvokeFunction \
+	--principal apigateway.amazonaws.com \
+	--source-arn "arn:aws:execute-api:us-east-1:$AWS_ACCOUNT_NUMBER:$APP_ID/*/GET/hello"
+
+	$ aws lambda add-permission \
+	--function-name helloworld \
+	--statement-id apigateway-prod-2 \
+	--action lambda:InvokeFunction \
+	--principal apigateway.amazonaws.com \
+	--source-arn "arn:aws:execute-api:us-east-1:$AWS_ACCOUNT_NUMBER:$APP_ID/prod/GET/hello"
+
+	# Test 1
+	$ aws apigateway test-invoke-method \
+	--rest-api-id $APP_ID \
+	--resource-id $RESOURCE_ID \
+	--http-method GET \
+	--path-with-query-string "hello" \
+	--body ""
+
+	# Test
+	curl -v https://$APP_ID.execute-api.us-east-1.amazonaws.com/prod/hello
+
+Learn more: 
+	* http://docs.aws.amazon.com/lambda/latest/dg/with-on-demand-https-example-configure-event-source.html
 
 ### Step: Cleanup
 
