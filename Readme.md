@@ -18,6 +18,8 @@ Steps:
 * Step 2: Create a helloworld function
 * Step 3: Upload function code
 * Step 4: Create the lambda function definition
+* Step 5: Invoke the function manually
+
 
 ### Step 0: Prerequisites
 
@@ -94,8 +96,8 @@ The code is stored in S3 as a zip file:
 	make_bucket: 1234567890-helloworld
 
 	# zip function:
-	$ zip helloworld.zip handler.js
-	adding: handler.js (deflated 28%)
+	$ zip helloworld.zip helloworld.js
+	adding: helloworld.js (deflated 28%)
 
 	# upload code:
 	$ aws s3 cp helloworld.zip s3://$AWS_ACCOUNT_NUMBER-helloworld	
@@ -132,7 +134,7 @@ The code is stored in S3 as a zip file:
 	 --function-name helloworld\
 	 --runtime nodejs6.10\
 	 --role arn:aws:iam::$AWS_ACCOUNT_NUMBER:role/my-aws-lambda-execution\
-	 --handler helloworld.index\
+	 --handler helloworld.handler\
 	 --code S3Bucket=$AWS_ACCOUNT_NUMBER-helloworld,S3Key=helloworld.zip
 
 	 {
@@ -148,12 +150,20 @@ The code is stored in S3 as a zip file:
 	    "Role": "arn:aws:iam::123456790:role/my-aws-lambda-execution",
 	    "Timeout": 3,
 	    "LastModified": "2017-06-12T18:11:15.532+0000",
-	    "Handler": "helloworld.index",
+	    "Handler": "helloworld.handler",
 	    "Runtime": "nodejs6.10",
 	    "Description": ""
 	}
 
 
+### Step 5: Invoke the function manually
+
+	# Invoke the function:
+	$ aws lambda invoke --function-name helloworld --log-type Tail --invocation-type RequestResponse outfile.dat |jq -r .LogResult | base64 --decode
+
+Learn more:
+
+	* http://docs.aws.amazon.com/lambda/latest/dg/with-userapp-walkthrough-custom-events-invoke.html
 
 ### Step: Cleanup
 
