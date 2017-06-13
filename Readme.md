@@ -1,54 +1,108 @@
 # Serverless the hard way
 
+Why? Because [abstractions save us time working, but they don’t save us time learning](https://www.joelonsoftware.com/2002/11/11/the-law-of-leaky-abstractions/).
+
 ## Helloworld with AWS
 
 Goals:
 * Minimmum steps to create helloworld (over http)
-* We are going to user the AWS CLI to configure, deploy and run a Lambda application. 
-* We try to avoid the AWS web console and only verify our CLI actions. 
-* We also try to automate as little as possible so the indivdual steps are comprehensible.
+* Use the AWS CLI to configure, deploy and run a Lambda application. 
+* Try to avoid the AWS web console. Use it only verify our CLI actions.
+* Only automate things in a comprehensible way with known tools (make, shell, jq).
 
+Steps:
+* Step 0: Prerequisites 
+  * a) Install AWS CLI & tools
+  * b) Store AWS account number for scripts
+* Step 1: Create a role to run the function
+* Step 2: Create a helloworld function
+* Step 3: Upload function code
+* Step 4: Create the lambda function definition
 
-### Prerequisites
+### Step 0: Prerequisites
 
-* Install the AWS CLI https://aws.amazon.com/cli/
-* Verify: `$ aws --version`
+#### a) Install AWS CLI & tools
 
+	* Install the AWS CLI https://aws.amazon.com/cli/
+	* Verify: `$ aws --version`
+	* Have make, jq installed
 
-### Step 1: Create a role
+#### b) Store AWS account number for scripts
+
+	# Get your account number and store in an env variable.
+	# We will use it to identify artefacts.
+	$ AWS_ACCOUNT_NUMBER=$(aws sts get-caller-identity | jq -r .Account)
+	# verify
+	$ echo $AWS_ACCOUNT_NUMBER
+	1234567890
+
+### Step 1: Create a role to run the function
 
 # Managed policy: AWSLambdaBasicExecutionRole
 
-http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-service.html
-
-	# create a policy document 
-	// TODO figure out minimal version
-	# create role
-	$ aws iam create-role --role-name my-aws-lambda-execution --assume-role-policy-document file://helloworldpolicy.json
-	# save role ARN
-	$ aws iam get-role --role-name my-aws-lambda-execution | jq .Role.Arn
+	# create a minimal policy document: 
+	$ cat minimal-lambda-policy.json
+	{
+  		"Version": "2012-10-17",
+  		"Statement": {
+      		"Effect": "Allow",
+      		"Principal": {
+        		"Service": "lambda.amazonaws.com"
+      		},
+      	"Action": "sts:AssumeRole"
+   		}
+	}
+	# create role:
+	$ aws iam create-role --role-name my-aws-lambda-execution --assume-role-policy-document file://minimal-lambda-policy.json
+	
 	# attach execute policy
 	$ aws iam attach-role-policy --role-name my-aws-lambda-execution --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
+Links / learn more:
+	* http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-service.html
+	* http://docs.aws.amazon.com/lambda/latest/dg/with-userapp-walkthrough-custom-events-create-iam-role.html
 
 
+### Step 2: Create a helloworld function
 
-### Step 2: Upload code
+	# create a function that sends a proper http response 
+	$ cat handler.js
+	'use strict';
 
-	# get your account number. we will user it as aprefix
-	$ AWS_ACCOUNT_NUMBER=$(aws sts get-caller-identity | jq -r .Account)
-	# make a bucket
+	module.exports.helloWorld = (event, context, callback) => {
+	const response = {
+		statusCode: 200,
+		body: JSON.stringify({
+		message: 'helloworld',
+		input: event,
+		}),
+	};
+
+	callback(null, response);
+	};
+
+Links / learn more:
+	* http://docs.aws.amazon.com/lambda/latest/dg/nodejs-prog-model-handler.html
+
+
+### Step 3: Upload function code
+
+The code is stored in S3 as a zip file:
+
+	# make a S3 bucket:
 	$ aws s3 mb s3://$AWS_ACCOUNT_NUMBER-helloworld
+	make_bucket: 1234567890-helloworld
 
+	# zip function:
 	$ zip helloworld.zip handler.js
+	adding: handler.js (deflated 28%)
 
-	# upload code
+	# upload code:
 	$ aws s3 cp helloworld.zip s3://$AWS_ACCOUNT_NUMBER-helloworld	
+	upload: ./helloworld.zip to s3://1234567890-helloworld/helloworld.zip
 
 
-### Step x: Create the lambda function
-
-
+### Step 4: Create the lambda function definition
 	
 	# show help info about creating a function:
 	$ aws lambda create-function help
@@ -73,17 +127,45 @@ http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-service.html
 		--handler (string)
           	The function within your code that Lambda calls to begin execution.
 	
-	# Create role first
-
 	# Create function
-	aws lambda create-function --function-name helloworld --runtime nodejs6.10 --role arn:aws:iam::$AWS_ACCOUNT_NUMBER:role/my-aws-lambda-execution --handler helloworld.index --code S3Bucket=$AWS_ACCOUNT_NUMBER-helloworld,S3Key=helloworld.zip	
+	$ aws lambda create-function\
+	 --function-name helloworld\
+	 --runtime nodejs6.10\
+	 --role arn:aws:iam::$AWS_ACCOUNT_NUMBER:role/my-aws-lambda-execution\
+	 --handler helloworld.index\
+	 --code S3Bucket=$AWS_ACCOUNT_NUMBER-helloworld,S3Key=helloworld.zip
+
+	 {
+	    "TracingConfig": {
+	        "Mode": "PassThrough"
+	    },
+	    "CodeSha256": "dVqbrjslslsiskl3s1qRilcTqMvRodldsis82721k=",
+	    "FunctionName": "helloworld",
+	    "CodeSize": 341,
+	    "MemorySize": 128,
+	    "FunctionArn": "arn:aws:lambda:us-east-1:123456790:function:helloworld",
+	    "Version": "$LATEST",
+	    "Role": "arn:aws:iam::123456790:role/my-aws-lambda-execution",
+	    "Timeout": 3,
+	    "LastModified": "2017-06-12T18:11:15.532+0000",
+	    "Handler": "helloworld.index",
+	    "Runtime": "nodejs6.10",
+	    "Description": ""
+	}
 
 
-## Cleanup
+
+### Step: Cleanup
 
 	#roles
 	$ aws iam detach-role-policy --role-name my-aws-lambda-execution --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+	
 	$ aws iam delete-role --role-name my-aws-lambda-execution
+
+	# delete function
+	aws lambda delete-function --function-name helloworld
+
+
 
 
 
