@@ -168,7 +168,7 @@ Learn more:
 	* http://docs.aws.amazon.com/lambda/latest/dg/with-userapp-walkthrough-custom-events-invoke.html
 
 
-### Step 6: Create a public rest API
+### TODO Step 6: Create a public rest API
 
 	$ aws apigateway help
 
@@ -252,7 +252,7 @@ Learn more:
 Learn more: 
 	* http://docs.aws.amazon.com/lambda/latest/dg/with-on-demand-https-example-configure-event-source.html
 
-### Step: Cleanup
+### TODO Step: Cleanup
 
 	#roles
 	$ aws iam detach-role-policy --role-name my-aws-lambda-execution --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
