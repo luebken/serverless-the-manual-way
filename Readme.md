@@ -42,8 +42,6 @@ Steps:
 
 ### Step 1: Create a role to run the function
 
-# Managed policy: AWSLambdaBasicExecutionRole
-
 	# create a minimal policy document: 
 	$ cat minimal-lambda-policy.json
 	{
