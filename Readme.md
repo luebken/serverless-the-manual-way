@@ -20,6 +20,7 @@ Steps:
 * Step 4: Create the lambda function definition
 * Step 5: Invoke the function manually
 * Step 6: Create a public rest API
+* Step 7: Update function
 
 
 ### Step 0: Prerequisites
@@ -33,7 +34,7 @@ Steps:
 #### b) Store AWS account number for scripts
 
 	# Get your account number and store in an env variable. We will use it to identify artefacts.
-	$ AWS_ACCOUNT_NUMBER=$(aws sts get-caller-identity | jq -r .Account)
+	$ export AWS_ACCOUNT_NUMBER=$(aws sts get-caller-identity | jq -r .Account)
 
 	# verify
 	$ echo $AWS_ACCOUNT_NUMBER
@@ -187,7 +188,7 @@ Learn more:
     	"createdDate": 1497362995
 	}
 	# Save the id as $APP_ID:
-	$ APP_ID=$(aws apigateway get-rest-apis |jq -r '.items[] | select(.name == "helloworld") | .id')
+	$ export APP_ID=$(aws apigateway get-rest-apis |jq -r '.items[] | select(.name == "helloworld") | .id')
 
 	# Save the root id of the api
 	$ ROOT_ID=$(aws apigateway get-resources --rest-api-id $APP_ID | jq -r .items[0].id)
@@ -258,6 +259,21 @@ Learn more:
 
 Learn more: 
 * http://docs.aws.amazon.com/lambda/latest/dg/with-on-demand-https-example-configure-event-source.html
+
+
+### Step 7: Update function
+
+	# update code 
+	
+	# zip
+	zip helloworld.zip helloworld.js
+
+	# upload
+	aws s3 cp helloworld.zip s3://$AWS_ACCOUNT_NUMBER-helloworld
+
+	# update function
+	$ aws lambda update-function-code --function-name helloworld --s3-bucket=$AWS_ACCOUNT_NUMBER-helloworld --s3-key=helloworld.zip
+
 
 ### TODO Step: Cleanup
 
