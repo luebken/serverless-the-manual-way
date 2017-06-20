@@ -50,7 +50,7 @@ Steps:
       		"Principal": {
         		"Service": "lambda.amazonaws.com"
       		},
-      	"Action": "sts:AssumeRole"
+      		"Action": "sts:AssumeRole"
    		}
 	}
 
@@ -64,9 +64,8 @@ Steps:
 	$ aws iam get-role --role-name my-aws-lambda-execution
 
 Links / learn more:
-
-	* http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-service.html
-	* http://docs.aws.amazon.com/lambda/latest/dg/with-userapp-walkthrough-custom-events-create-iam-role.html
+* http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-service.html
+* http://docs.aws.amazon.com/lambda/latest/dg/with-userapp-walkthrough-custom-events-create-iam-role.html
 
 
 ### Step 2: Create a helloworld function
