@@ -22,20 +22,19 @@ Steps:
 * Step 6: Create a public rest API
 
 
-
 ### Step 0: Prerequisites
 
 #### a) Install AWS CLI & tools
 
 	* Install the AWS CLI https://aws.amazon.com/cli/
 	* Verify: `$ aws --version`
-	* Have make, jq installed
+	* Have `make`, `jq` installed
 
 #### b) Store AWS account number for scripts
 
-	# Get your account number and store in an env variable.
-	# We will use it to identify artefacts.
+	# Get your account number and store in an env variable. We will use it to identify artefacts.
 	$ AWS_ACCOUNT_NUMBER=$(aws sts get-caller-identity | jq -r .Account)
+
 	# verify
 	$ echo $AWS_ACCOUNT_NUMBER
 	1234567890
@@ -54,13 +53,18 @@ Steps:
       	"Action": "sts:AssumeRole"
    		}
 	}
+
 	# create role:
 	$ aws iam create-role --role-name my-aws-lambda-execution --assume-role-policy-document file://minimal-lambda-policy.json
 	
 	# attach execute policy
 	$ aws iam attach-role-policy --role-name my-aws-lambda-execution --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
+	# verify
+	$ aws iam get-role --role-name my-aws-lambda-execution
+
 Links / learn more:
+
 	* http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-service.html
 	* http://docs.aws.amazon.com/lambda/latest/dg/with-userapp-walkthrough-custom-events-create-iam-role.html
 
